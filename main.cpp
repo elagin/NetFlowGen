@@ -80,7 +80,7 @@ typedef struct packetData {
     string destIp;
     string destPort;
     string bytesCount;
-    string protocol;
+    int protocol;
 }PacketData;
 
 //vector<PacketData> data;
@@ -219,7 +219,19 @@ PacketData parceLine(const string & aStr) {
 //    cout << "size: [" << size << "]" << endl;
 
     string packetType;
-    startNextParam = parceParams(aStr, startNextParam + 1, packet.protocol);
+    startNextParam = parceParams(aStr, startNextParam + 1, packetType);
+    
+    if(packetType.compare("UDP") == 0){
+        packet.protocol = 17;
+    }
+    else if(packetType.compare("TCP") == 0){
+        packet.protocol = 6;
+    }
+    else{
+        cout << "Unknow protocol type" << endl;
+    }
+        
+
 //    cout << "packetType: [" << packetType << "]" << endl;
 
 //    data.push_back(packet);
@@ -231,7 +243,7 @@ PacketData parceLine(const string & aStr) {
 // cat file.txt | our_flow_gen -i:192.168.10.63 -p:7223
 
 
-bool sendData( const string sendIp, const PacketData & packet )
+bool sendData(const string sendIp, const PacketData & packet)
 {
 
     SingleNetFlow5Record theRecord;
@@ -273,7 +285,7 @@ bool sendData( const string sendIp, const PacketData & packet )
 
         theRecord.flowRecord.First = htonl((actTime - 1000)*1000);
         theRecord.flowRecord.Last = htonl((actTime - 100)*1000);
-        theRecord.flowRecord.prot = 17 /* UDP */;
+        theRecord.flowRecord.prot = packet.protocol;
 
         if (sendto(sock, (void*) &theRecord, sizeof (theRecord), 0, (struct sockaddr *) &sin, sizeof (sin)) == -1) {
             printf("sendto error\n");

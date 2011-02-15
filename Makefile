@@ -2,9 +2,18 @@
 #
 # Common Unix flags
 EXECUTABLE=netflowgen
-CFLAGS=-MMD -D_FILE_OFFSET_BITS=64 -DMT -DLB_MODULE_NAME=\"$(EXECUTABLE)\"
+CFLAGS=-MMD -D_FILE_OFFSET_BITS=64 -DMT -DLB_MODULE_NAME=\"$(EXECUTABLE)\" -DWITH_NONAMESPACES -DWITH_COOKIES -I../Lblib \
+#-I../sbss -I. \
+#	-I../check_sv_license -I../collect_data -I../settings -I../dbconnection  -I../db_tables -I../common -I../server_thread\
+#	-I../api -I../../xmlapi
+#	-O0 -g3
+#-fomit-frame-pointer
 
-LDFLAGS=/usr/lib/gcc/i486-linux-gnu/4.4.3/libstdc++.a -lm -lpthread -lrt
+#for NetBeans debug
+#-O0 -g3
+
+#LDFLAGS=/usr/lib/libboost_thread-mt.a /usr/lib/gcc/i486-linux-gnu/4.4.3/libstdc++.a  -lm -lpthread -lrt
+LDFLAGS=/usr/lib/gcc/i486-linux-gnu/4.4.3/libstdc++.a  -lm -lpthread -lrt
 
 CC=g++
 FOUT=-o

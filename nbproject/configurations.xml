@@ -42,18 +42,6 @@
           <output>${CND_DISTDIR}/netflowgen</output>
         </linkerTool>
       </compileType>
-      <packaging>
-        <packType>Tar</packType>
-        <output>${CND_DISTDIR}/netflowgen.tar</output>
-        <packFileList>
-          <packFileListElem type="File"
-                            to="${PACKAGE_TOP_DIR}bin/${OUTPUT_BASENAME}"
-                            from="${OUTPUT_PATH}"
-                            perm="755"
-                            owner="root"
-                            group="bin"/>
-        </packFileList>
-      </packaging>
     </conf>
     <conf name="Release" type="1">
       <toolsSet>
@@ -74,6 +62,9 @@
         <asmTool>
           <developmentMode>5</developmentMode>
         </asmTool>
+        <linkerTool>
+          <output>${CND_DISTDIR}/netflowgen</output>
+        </linkerTool>
       </compileType>
     </conf>
   </confs>

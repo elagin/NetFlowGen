@@ -1,19 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <time.h>
-#include <sys/time.h>
-#include <signal.h>
 #include <iostream>
-#include <fstream>
-#include <vector>
-//#include "boost/spirit/include/classic.hpp"
 
-using namespace std; //::string;
+using namespace std;
 
 time_t actTime;
 static u_int32_t globalFlowSequence = 0;
@@ -36,9 +29,9 @@ struct flow_ver5_rec {
     u_int16_t input; /* Input interface index */
     u_int16_t output; /* Output interface index */
     u_int32_t dPkts; /* Packets sent in Duration (milliseconds between 1st
-                           & last packet in this flow)*/
+& last packet in this flow)*/
     u_int32_t dOctets; /* Octets sent in Duration (milliseconds between 1st
-                           & last packet in  this flow)*/
+& last packet in this flow)*/
     u_int32_t First; /* SysUptime at start of flow */
     u_int32_t Last; /* and of last packet of the flow */
     u_int16_t srcport; /* TCP/UDP source port number (.e.g, FTP, Telnet, etc.,or equivalent) */
@@ -54,121 +47,47 @@ struct flow_ver5_rec {
     u_int16_t pad2; /* pad to word boundary */
 };
 
+const int RECORDS_COUNT = 20;
+
 typedef struct single_flow_ver5_rec {
-    struct flow_ver5_hdr flowHeader;
-    struct flow_ver5_rec flowRecord;
-} SingleNetFlow5Record;
-
-static void initFlowHeader(struct flow_ver5_hdr *flowHeader, int numCount) {
-
-    flowHeader->version = htons(5);
-    flowHeader->count = htons(numCount);
-    flowHeader->sysUptime = htonl((actTime - actTime - 1000)*1000);
-    flowHeader->unix_secs = htonl(actTime);
-    flowHeader->unix_nsecs = htonl(0);
-    flowHeader->flow_sequence = htonl(globalFlowSequence);
-    flowHeader->engine_type = 0;
-    flowHeader->engine_id = 0;
-
-    globalFlowSequence += numCount;
-
-}
+    flow_ver5_hdr flowHeader;
+    flow_ver5_rec flowRecord[RECORDS_COUNT];
+}NetFlow5Records;
 
 typedef struct packetData {
     string srcIp;
     string srcPort;
     string destIp;
     string destPort;
-    string bytesCount;
+    int bytesCount;
     int protocol;
 }PacketData;
 
-//vector<PacketData> data;
+static void initFlowHeader(struct flow_ver5_hdr *flowHeader) {
 
-in_addr_t make_addr(int type) {
-    char tmp[20];
-    int i;
-
-    srand(time(NULL));
-    i = 1 + (int) (200.0 * rand() / (RAND_MAX + 1.0));
-
-    memset(&tmp, 0, sizeof (tmp));
-
-    if (type == 1)
-        sprintf(tmp, "10.10.10.1");
-    else
-        sprintf(tmp, "195.100.100.%d", i);
-
-    return (inet_addr(tmp));
+    memset(flowHeader, 0, sizeof (flowHeader));
+    flowHeader->version = htons(5);
+    flowHeader->count = htons(RECORDS_COUNT);
+    flowHeader->sysUptime = htonl((actTime - actTime - 1000)*1000);
+    flowHeader->unix_secs = htonl(actTime);
+    flowHeader->unix_nsecs = htonl(0);
+    flowHeader->flow_sequence = htonl(globalFlowSequence);
+    flowHeader->engine_type = 0;
+    flowHeader->engine_id = 0;
+    globalFlowSequence += RECORDS_COUNT;
 }
 
 in_addr_t make_addr(string aStr) {
     return (inet_addr(aStr.c_str()));
 }
 
-int make_ports(int type) {
-
-    srand(time(NULL));
-
-    if (type == 1)
-        return (1 + (int) (110.0 * rand() / (RAND_MAX + 1.0)));
-    else
-        return (1024 + (int) (55555.0 * rand() / (RAND_MAX + 1.0)));
-}
-
 int make_ports(string aStr) {
-    int res = atoi(aStr.c_str());
-    return res;
+    return atoi(aStr.c_str());
 }
-//10.0.0.1:3000 > 10.0.0.8:4000 2000 UDP
-
-//using namespace boost::spirit::classic;
-//#include <boost/spirit/include/classic_push_back_actor.hpp>
-//#include <iostream>
-//#include <vector>
-//#include <string>
-
-//using namespace std;
-//using namespace boost::spirit;
-//
-//// Парсер разделённых запятой чисел
-//bool parse_numbers(const char* str, vector<double>& v)
-//{
-//    double one;
-//    return parse(str,
-//    // начало грамматики
-//    (
-////    real_p[push_back_a(v)] >> *(',' >> real_p[push_back_a(v)])
-//    real_p[push_back_a(v)] >> *(',' >> real_p[push_back_a(v)])
-//    )
-//    ,
-//    // конец грамматики
-//    space_p).full;
-//    }
-//
-////10.0.0.1:3000 > 10.0.0.8:4000 2000 UDP
-//bool parseUrl(const string& str)
-//{
-//    rule<> word_p = +alpha_p;
-//    rule<> scheme_p = word_p >> str_p("://");    // http://
-//    rule<> host_p = word_p >> ch_p('.');             // www.
-//    rule<> domain_p = word_p >> ch_p('.') >> word_p;   // google.com
-//    rule<> port_p = ch_p(':') >> uint_p;               // :80
-//    rule<> path_p = ch_p('/') % word_p;               // /path/to/file/
-//    rule<> filename_p = word_p >> !(ch_p('.') >> word_p);   // logo.gif (extension optional)
-//
-//    // Optional scheme, optional host, domain, optional port, path and filename option. Can have path without filename, but not filename without path.
-//    rule<> url_p = !scheme_p >> !host_p >> domain_p >> !port_p >> !(path_p >> !filename_p);
-//
-//    return parse(str.c_str(), url_p, space_p).full;
-//}
 
 int parceHost(const string & aStr, const int aStartPos, string & ip, string & port) {
-    //    cout << "parceHost start: " << aStartPos << endl;
-    int ipStartPos = 0;
-    int ipEndPos = 0;
 
-    int portStartPos = 0;
+    int ipEndPos = 0;
     int PortEndPos = 0;
 
     const char* div = ":";
@@ -176,51 +95,40 @@ int parceHost(const string & aStr, const int aStartPos, string & ip, string & po
 
     ipEndPos = aStr.find(div, aStartPos);
     ip = aStr.substr(aStartPos, ipEndPos - aStartPos);
-    //    cout << "ipEndPos: " << ipEndPos << "  size: " <<  ipEndPos - aStartPos << endl;
 
     PortEndPos = aStr.find(end, aStartPos);
-    //    cout << "PortEndPos: " << PortEndPos << endl;
-
     port = aStr.substr(ipEndPos + 1, PortEndPos - ipEndPos - 1);
 
-    //    cout << "ipEndPos - PortEndPos:" << ipEndPos - PortEndPos << endl;
     return PortEndPos + 3;
-
 }
 
-int parceParams(const string & aStr, const int aStartPos, string & res) {
-    cout << "parceParams start: " << aStartPos << endl;
+int parceParams(const string & aStr, const int aStartPos, string & res){
+
     const char* div = " ";
     int ipEndPos = 0;
+
     ipEndPos = aStr.find(div, aStartPos);
     res = aStr.substr(aStartPos, ipEndPos - aStartPos);
+
     return ipEndPos;
 }
 
-//10.0.0.1:3000 > 10.0.0.8:4000 2000 UDP
-
 PacketData parceLine(const string & aStr) {
 
-    PacketData  packet;
+    PacketData packet;
+//    memset(&packet, 0, sizeof (packet));
 
-//    cout << "Line: " << aStr << endl;
-//    cout << "      01234567890123456789012345678901234567890" << endl;
-//    int hostEndPos = parceHost(aStr, 0, srcIp, srcPort);
+    cout << "Line: " << aStr << endl;
     int hostEndPos = parceHost(aStr, 0, packet.srcIp, packet.srcPort);
-//    cout << "IP:[" << srcIp << "] port[" << srcPort << "]" << endl;
-//    cout << "=======================" << endl;
-
     int startNextParam = parceHost(aStr, hostEndPos, packet.destIp, packet.destPort);
-//    cout << "IP:[" << srcIp << "] port[" << srcPort << "]" << endl;
-//    cout << "=======================" << endl;
 
     string size;
-    startNextParam = parceParams(aStr, startNextParam - 2, packet.bytesCount);
-//    cout << "size: [" << size << "]" << endl;
+    startNextParam = parceParams(aStr, startNextParam - 2, size);
+    packet.bytesCount = atoi(size.c_str());
 
     string packetType;
     startNextParam = parceParams(aStr, startNextParam + 1, packetType);
-    
+
     if(packetType.compare("UDP") == 0){
         packet.protocol = 17;
     }
@@ -228,81 +136,90 @@ PacketData parceLine(const string & aStr) {
         packet.protocol = 6;
     }
     else{
-        cout << "Unknow protocol type" << endl;
+        cout << "Unknow protocol type: " << packetType << endl;
     }
-        
 
-//    cout << "packetType: [" << packetType << "]" << endl;
-
-//    data.push_back(packet);
+    cout << "packetType: " << packetType << endl;
     return packet;
-    //   bool ok = parse(First, Last, (uint_ >> L"-" >> uint_), MinMax) && (First == Last);
-    //Spirit — одна из наиболее сложных частей Boost, предназначенная для написания парсеров напрямую в C++ тексте программы в виде близком к форме Бэкуса-Наура.
 }
 
-// cat file.txt | our_flow_gen -i:192.168.10.63 -p:7223
-
-
-bool sendData(const string sendIp, const PacketData & packet)
+bool sendData(const string sendIp, const void * packet, const int packetSize)
 {
-
-    SingleNetFlow5Record theRecord;
     struct sockaddr_in sin;
-    int sock;
+    int sock = 0;
     actTime = time(NULL);
 
+    const int port = 7223;
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(7223);
+    sin.sin_port = htons(port);
     sin.sin_addr.s_addr = inet_addr(sendIp.c_str());
-
+    
     sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    memset(&theRecord, 0, sizeof (theRecord));
+    cout << "Send to: " << sendIp << ":" << port << " packet size: " << packetSize << endl;
 
-    cout << "ready" << endl;
-
-//    while (1) {
-//
-//        if (atoi(argv[2]) != 0) {
-//            if (count == atoi(argv[2])) {
-//                printf("%d packets sended, total size: %ld\n", count, totsize);
-//                exit(0);
-//            }
-//        }
-
-        memset(&theRecord, 0, sizeof (theRecord));
-        srand(time(NULL));
-
-        initFlowHeader(&theRecord.flowHeader, 1);
-        theRecord.flowRecord.srcaddr = make_addr(packet.srcIp);
-        theRecord.flowRecord.dstaddr = make_addr(packet.destIp);
-        theRecord.flowRecord.srcport = htons(make_ports(packet.srcPort));
-        theRecord.flowRecord.dstport = htons(make_ports(packet.destPort));
-
-        theRecord.flowRecord.input = htonl(1);
-        theRecord.flowRecord.output = htonl(1);
-        theRecord.flowRecord.dPkts = htonl(1);
-
-        theRecord.flowRecord.First = htonl((actTime - 1000)*1000);
-        theRecord.flowRecord.Last = htonl((actTime - 100)*1000);
-        theRecord.flowRecord.prot = packet.protocol;
-
-        if (sendto(sock, (void*) &theRecord, sizeof (theRecord), 0, (struct sockaddr *) &sin, sizeof (sin)) == -1) {
-            printf("sendto error\n");
-            exit(0);
-        }
-//        count++;
-//        totsize += size;
-//        if (atoi(argv[4]) == -1)
-//            usleep(100000 + (int) (5000000.0 * rand() / (RAND_MAX + 1.0)));
-//        else
-//            usleep(atoi(argv[4]));
+    if (sendto(sock, packet, packetSize, 0, (struct sockaddr *) &sin, sizeof (sin)) == -1) {
+        printf("sendto error\n");
+        exit(0);
+    }
 
     close(sock);
-    printf("1440 sec \n");
-
 }
+
+void fill(const PacketData & packet, flow_ver5_rec & theRecord)
+{
+    cout << "fill" << endl;
+    memset(&theRecord, 0, sizeof (theRecord));
     
+    theRecord.srcaddr = make_addr(packet.srcIp);
+    theRecord.dstaddr = make_addr(packet.destIp);
+    theRecord.srcport = htons(make_ports(packet.srcPort));
+    theRecord.dstport = htons(make_ports(packet.destPort));
+
+    theRecord.input = htonl(1);
+    theRecord.output = htonl(1);
+    theRecord.dPkts = htonl(1);
+    theRecord.dOctets = htonl(packet.bytesCount);
+
+    theRecord.First = htonl((actTime - 1000)*1000);
+    theRecord.Last = htonl((actTime - 100)*1000);
+    theRecord.prot = packet.protocol;
+
+    cout << "fill" << endl;
+}
+
+void fromTube(char *argv)
+{
+    PacketData  pd;
+    memset(&pd, 0, sizeof (pd));
+
+    NetFlow5Records records;
+    memset(&records, 0, sizeof (records));
+
+    string str;
+    int i = 0;
+
+    while (true) {
+        getline(cin, str);
+        if (str.length() > 0) {
+            cout << str << endl;
+//            pd = parceLine(str);
+            cout << "pre fill" << endl;
+            fill(pd,records.flowRecord[i]);
+            if(i == RECORDS_COUNT-1){            // Накопилось достаточно записей
+                initFlowHeader(&records.flowHeader);
+//                sendData(argv, (void*)&records, sizeof(records));
+//                memset(&records, 0, sizeof(records));
+                i = 0;
+            }
+            else
+            {
+                i++;
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
 
     int i = 0;
@@ -310,44 +227,12 @@ int main(int argc, char *argv[]) {
     unsigned long int totsize = 0;
     int size = 0;
 
-    if (argc < 3) {
-        printf("Usage: %s ip_addres port\n", argv[0]);
+    if (argc < 2) {
+        printf("Usage: %s ip_addres\n", argv[0]);
         exit(0);
     }
 
-    string str;
-    int pos = 0;
-
-    while (false) {
-        getline(cin, str);
-        if (str.length() > 0) {
-            cout << "Srt: " << str << endl;
-            PacketData pd = parceLine(str);
-            sendData(argv[1], pd );
-        }
-        /*
-                ifstream In("file.txt", ios::in);
-                while(! In.eof())
-                {
-        //            int endPos = 0;
-        //            In.seekg (endPos, ios::end);
-        //            endPos = In.tellg();
-        //            cout << "ENDPos: " << endPos << endl;
-
-                    In.seekg (pos, ios::beg);
-                    getline (In, str);
-                    if( str.length() > 0){
-        //                cout << "STR: " << str << endl;
-                        pos = In.tellg();
-        //                cout << "Pos: " << pos << endl;
-                        parceLine(str);
-                    }
-                    else{
-                        break;
-                    }
-                }
-         */
-//            }
-    }
+    fromTube(argv[1]);
+    
     exit(0);
 }

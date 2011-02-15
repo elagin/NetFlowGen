@@ -54,11 +54,11 @@ LDLIBSOPTIONS=
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-Release.mk dist/Release/GNU-Linux-x86/netflowgen
+	"${MAKE}"  -f nbproject/Makefile-Release.mk dist/netflowgen
 
-dist/Release/GNU-Linux-x86/netflowgen: ${OBJECTFILES}
-	${MKDIR} -p dist/Release/GNU-Linux-x86
-	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/netflowgen ${OBJECTFILES} ${LDLIBSOPTIONS} 
+dist/netflowgen: ${OBJECTFILES}
+	${MKDIR} -p dist
+	${LINK.cc} -o ${CND_DISTDIR}/netflowgen ${OBJECTFILES} ${LDLIBSOPTIONS} 
 
 ${OBJECTDIR}/main.o: main.cpp 
 	${MKDIR} -p ${OBJECTDIR}
@@ -71,7 +71,7 @@ ${OBJECTDIR}/main.o: main.cpp
 # Clean Targets
 .clean-conf: ${CLEAN_SUBPROJECTS}
 	${RM} -r build/Release
-	${RM} dist/Release/GNU-Linux-x86/netflowgen
+	${RM} dist/netflowgen
 
 # Subprojects
 .clean-subprojects:

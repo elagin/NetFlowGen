@@ -11,7 +11,7 @@ CND_CONF=Release
 CND_DISTDIR=dist
 NBTMPDIR=build/${CND_CONF}/${CND_PLATFORM}/tmp-packaging
 TMPDIRNAME=tmp-packaging
-OUTPUT_PATH=${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/netflowgen
+OUTPUT_PATH=${CND_DISTDIR}/netflowgen
 OUTPUT_BASENAME=netflowgen
 PACKAGE_TOP_DIR=netflowgen/
 

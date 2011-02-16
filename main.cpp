@@ -1,16 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <time.h>
-#include <sys/time.h>
 #include <signal.h>
 #include <iostream>
 #include <fstream>
-#include <vector>
 
 using namespace std;
 
@@ -70,7 +66,6 @@ typedef struct packetData {
 }PacketData;
 
 static void initFlowHeader(struct flow_ver5_hdr *flowHeader) {
-
     memset(flowHeader, 0, sizeof (flowHeader));
     flowHeader->version = htons(5);
     flowHeader->count = htons(PACKET_COUNT);
@@ -102,7 +97,6 @@ in_addr_t make_addr(int type) {
 }
 
 in_addr_t make_addr(string aStr) {
-//        cout << "make_addr " <<  aStr << endl;
     return (inet_addr(aStr.c_str()));
 }
 
@@ -117,13 +111,12 @@ int make_ports(int type) {
 }
 
 int make_ports(string aStr) {
-//    cout << "make_ports " <<  aStr << endl;
     int res = atoi(aStr.c_str());
     return res;
 }
 
 int parceHost(const string & aStr, const int aStartPos, string & ip, string & port) {
-    // cout << "parceHost start: " << aStartPos << endl;
+
     int ipStartPos = 0;
     int ipEndPos = 0;
 
@@ -135,20 +128,15 @@ int parceHost(const string & aStr, const int aStartPos, string & ip, string & po
 
     ipEndPos = aStr.find(div, aStartPos);
     ip = aStr.substr(aStartPos, ipEndPos - aStartPos);
-    // cout << "ipEndPos: " << ipEndPos << " size: " << ipEndPos - aStartPos << endl;
-
     PortEndPos = aStr.find(end, aStartPos);
-    // cout << "PortEndPos: " << PortEndPos << endl;
-
     port = aStr.substr(ipEndPos + 1, PortEndPos - ipEndPos - 1);
 
-    // cout << "ipEndPos - PortEndPos:" << ipEndPos - PortEndPos << endl;
     return PortEndPos + 3;
 
 }
 
 int parceParams(const string & aStr, const int aStartPos, string & res){
-//    cout << "parceParams start: " << aStartPos << endl;
+
     const char* div = " ";
     int ipEndPos = 0;
     ipEndPos = aStr.find(div, aStartPos);
@@ -159,23 +147,16 @@ int parceParams(const string & aStr, const int aStartPos, string & res){
 PacketData parceLine(const string & aStr) {
 
     PacketData packet;
+    packet.bytesCount = 0;
+    packet.protocol = 0;
 
- cout << "Line: " << aStr << endl;
-// cout << " 01234567890123456789012345678901234567890" << endl;
-// int hostEndPos = parceHost(aStr, 0, srcIp, srcPort);
+    cout << "Line: " << aStr << endl;
     int hostEndPos = parceHost(aStr, 0, packet.srcIp, packet.srcPort);
-// cout << "IP:[" << srcIp << "] port[" << srcPort << "]" << endl;
-// cout << "=======================" << endl;
-
     int startNextParam = parceHost(aStr, hostEndPos, packet.destIp, packet.destPort);
-// cout << "IP:[" << srcIp << "] port[" << srcPort << "]" << endl;
-// cout << "=======================" << endl;
 
     string size;
-    
     startNextParam = parceParams(aStr, startNextParam - 2, size);
     packet.bytesCount = atoi(size.c_str());
-//    cout << "packet.bytesCount: [" << packet.bytesCount << "]" << endl;
 
     string packetType;
     startNextParam = parceParams(aStr, startNextParam + 1, packetType);
@@ -187,16 +168,13 @@ PacketData parceLine(const string & aStr) {
         packet.protocol = 6;
     }
     else{
-        cout << "Unknow protocol type" << endl;
+        cout << "Unknow protocol type: " << packetType << endl;
     }
 
-// cout << "packetType: [" << packetType << "]" << endl;
     return packet;
 }
 
-//bool sendData(const string sendIp, const PacketData & packet)
-bool sendData(const string sendIp, const void * packet, const int packetSize)
-{
+bool sendData(const string sendIp, const void * packet, const int packetSize){
     struct sockaddr_in sin;
     int sock;
     actTime = time(NULL);
@@ -209,8 +187,6 @@ bool sendData(const string sendIp, const void * packet, const int packetSize)
     sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     cout << "Send to: " << sendIp << ":" << port << " packet size: " << packetSize << endl;
-//    srand(time(NULL));
-//    if (sendto(sock, (void*) &theRecord, sizeof (theRecord), 0, (struct sockaddr *) &sin, sizeof (sin)) == -1) {
     if (sendto(sock, packet, packetSize, 0, (struct sockaddr *) &sin, sizeof (sin)) == -1) {
         printf("sendto error\n");
         exit(0);
@@ -219,9 +195,7 @@ bool sendData(const string sendIp, const void * packet, const int packetSize)
     close(sock);
 }
 
-//void fill(const PacketData & packet, SingleNetFlow5Record & theRecord)
-void fill(const PacketData & packet, flow_ver5_rec & theRecord)
-{
+void fill(const PacketData & packet, flow_ver5_rec & theRecord){
     memset(&theRecord, 0, sizeof (theRecord));
     theRecord.srcaddr = make_addr(packet.srcIp);
     theRecord.dstaddr = make_addr(packet.destIp);
@@ -236,11 +210,9 @@ void fill(const PacketData & packet, flow_ver5_rec & theRecord)
     theRecord.First = htonl((actTime - 1000)*1000);
     theRecord.Last = htonl((actTime - 100)*1000);
     theRecord.prot = packet.protocol;
-//    return theRecord;
 }
 
-void fromTube(char *argv)
-{
+void fromTube(char *argv){
     PacketData  pd;
     SingleNetFlow5Record records;
     memset(&records, 0, sizeof (records));
@@ -249,13 +221,9 @@ void fromTube(char *argv)
     int i = 0;
 
     while (true) {
-//        cout << " start getline" << endl;
         getline(cin, str);
-//        cout << "end getline" << endl;
         if (str.length() > 0) {
-            cout << i << endl;
             pd = parceLine(str);
-//            records[i] = fill(pd);
             fill(pd,records.flowRecord[i]);
             if(i == PACKET_COUNT-1){
                 initFlowHeader(&records.flowHeader);
@@ -271,55 +239,6 @@ void fromTube(char *argv)
     }
 }
 
-void fromFile(char *argv)
-{
-    const int size = 2;
-    PacketData  pd;
-//    SingleNetFlow5Record records[size];
-
-//    memset(records, 0, sizeof (records));
-    string str;
-    int i = 0;
-
-    ifstream In("file.txt", ios::in);
-    int pos = 0;
-    while(! In.eof())
-    {
-        // int endPos = 0;
-        // In.seekg (endPos, ios::end);
-        // endPos = In.tellg();
-        // cout << "ENDPos: " << endPos << endl;
-
-        In.seekg (pos, ios::beg);
-        getline (In, str);
-        if( str.length() > 0){
-        // cout << "STR: " << str << endl;
-        pos = In.tellg();
-        // cout << "Pos: " << pos << endl;
-
-
-            pd = parceLine(str);
-//            records[i] = fill(pd);
-//            fill(pd,records[i]);
-            if(i == size-1){
-//                sendData(argv, (void*)&records, sizeof(records));
-//                memset(records, 0, sizeof (records));
-                i = 0;
-//                cout << "restart" << endl;
-            }
-            else
-            {
-                i++;
-            }
-
-
-        }
-        else{
-            break;
-        }
-    }   
-}
-
 int main(int argc, char *argv[]) {
 
     int i = 0;
@@ -327,12 +246,10 @@ int main(int argc, char *argv[]) {
     unsigned long int totsize = 0;
     int size = 0;
 
-    if (argc < 3) {
-        printf("Usage: %s ip_addres port\n", argv[0]);
+    if (argc < 2) {
+        printf("Usage: %s ip_addres\n", argv[0]);
         exit(0);
     }
-
-//    fromFile(argv[1]);
     fromTube(argv[1]);
     exit(0);
 }
